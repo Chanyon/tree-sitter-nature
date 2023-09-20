@@ -1,5 +1,15 @@
 [
   {
+    "type": "ADD_SUB",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "MUL_DIV",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "arrayLiteral",
     "named": true,
     "fields": {},
@@ -8,7 +18,7 @@
       "required": true,
       "types": [
         {
-          "type": "primary",
+          "type": "expression",
           "named": true
         }
       ]
@@ -34,7 +44,96 @@
     }
   },
   {
+    "type": "assignOp",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "assignmentStmt",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "assignOp",
+          "named": true
+        },
+        {
+          "type": "expression",
+          "named": true
+        },
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "baseType",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "binaryExpr",
+    "named": true,
+    "fields": {
+      "left": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "&&",
+            "named": false
+          },
+          {
+            "type": "ADD_SUB",
+            "named": true
+          },
+          {
+            "type": "MUL_DIV",
+            "named": true
+          },
+          {
+            "type": "bitwise_l_r",
+            "named": true
+          },
+          {
+            "type": "comparison",
+            "named": true
+          },
+          {
+            "type": "||",
+            "named": false
+          }
+        ]
+      },
+      "right": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "bitwise_l_r",
     "named": true,
     "fields": {}
   },
@@ -67,15 +166,20 @@
       "required": true,
       "types": [
         {
-          "type": "expression",
+          "type": "ident",
           "named": true
         },
         {
-          "type": "ident",
+          "type": "parameterList",
           "named": true
         }
       ]
     }
+  },
+  {
+    "type": "comparison",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "continueStmt",
@@ -106,15 +210,11 @@
       "required": true,
       "types": [
         {
-          "type": "arrayLiteral",
+          "type": "binaryExpr",
           "named": true
         },
         {
-          "type": "callExpr",
-          "named": true
-        },
-        {
-          "type": "indexExpr",
+          "type": "groupExpr",
           "named": true
         },
         {
@@ -122,7 +222,11 @@
           "named": true
         },
         {
-          "type": "tupleLiteral",
+          "type": "tupleExpr",
+          "named": true
+        },
+        {
+          "type": "unaryExpr",
           "named": true
         }
       ]
@@ -149,6 +253,21 @@
     }
   },
   {
+    "type": "groupExpr",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "indexExpr",
     "named": true,
     "fields": {},
@@ -168,6 +287,26 @@
     }
   },
   {
+    "type": "parameterList",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "prefixOp",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "primary",
     "named": true,
     "fields": {},
@@ -180,11 +319,19 @@
           "named": true
         },
         {
+          "type": "callExpr",
+          "named": true
+        },
+        {
           "type": "floatLiteral",
           "named": true
         },
         {
           "type": "ident",
+          "named": true
+        },
+        {
+          "type": "indexExpr",
           "named": true
         },
         {
@@ -214,6 +361,21 @@
     }
   },
   {
+    "type": "returnStmt",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "statements",
     "named": true,
     "fields": {},
@@ -221,6 +383,10 @@
       "multiple": false,
       "required": true,
       "types": [
+        {
+          "type": "assignmentStmt",
+          "named": true
+        },
         {
           "type": "blockStmt",
           "named": true
@@ -238,6 +404,10 @@
           "named": true
         },
         {
+          "type": "returnStmt",
+          "named": true
+        },
+        {
           "type": "varDecl",
           "named": true
         }
@@ -250,7 +420,7 @@
     "fields": {}
   },
   {
-    "type": "tupleLiteral",
+    "type": "tupleExpr",
     "named": true,
     "fields": {},
     "children": {
@@ -258,7 +428,11 @@
       "required": true,
       "types": [
         {
-          "type": "primary",
+          "type": "arrayLiteral",
+          "named": true
+        },
+        {
+          "type": "expression",
           "named": true
         }
       ]
@@ -298,6 +472,51 @@
         {
           "type": "tupleType",
           "named": true
+        },
+        {
+          "type": "unionType",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "unaryExpr",
+    "named": true,
+    "fields": {
+      "left": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "prefixOp",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "unionType",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "baseType",
+          "named": true
         }
       ]
     }
@@ -310,6 +529,10 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "arrayLiteral",
+          "named": true
+        },
         {
           "type": "expression",
           "named": true
@@ -326,7 +549,27 @@
     }
   },
   {
+    "type": "!",
+    "named": false
+  },
+  {
+    "type": "!=",
+    "named": false
+  },
+  {
     "type": "\"",
+    "named": false
+  },
+  {
+    "type": "%",
+    "named": false
+  },
+  {
+    "type": "%=",
+    "named": false
+  },
+  {
+    "type": "&&",
     "named": false
   },
   {
@@ -342,11 +585,79 @@
     "named": false
   },
   {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "*=",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": "+=",
+    "named": false
+  },
+  {
     "type": ",",
     "named": false
   },
   {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": "-=",
+    "named": false
+  },
+  {
+    "type": "/",
+    "named": false
+  },
+  {
+    "type": "/=",
+    "named": false
+  },
+  {
+    "type": "<",
+    "named": false
+  },
+  {
+    "type": "<<",
+    "named": false
+  },
+  {
+    "type": "<<=",
+    "named": false
+  },
+  {
+    "type": "<=",
+    "named": false
+  },
+  {
     "type": "=",
+    "named": false
+  },
+  {
+    "type": "==",
+    "named": false
+  },
+  {
+    "type": ">",
+    "named": false
+  },
+  {
+    "type": ">=",
+    "named": false
+  },
+  {
+    "type": ">>",
+    "named": false
+  },
+  {
+    "type": ">>=",
     "named": false
   },
   {
@@ -454,6 +765,10 @@
     "named": false
   },
   {
+    "type": "in",
+    "named": false
+  },
+  {
     "type": "int",
     "named": false
   },
@@ -534,7 +849,19 @@
     "named": false
   },
   {
+    "type": "|",
+    "named": false
+  },
+  {
+    "type": "||",
+    "named": false
+  },
+  {
     "type": "}",
+    "named": false
+  },
+  {
+    "type": "~",
     "named": false
   }
 ]

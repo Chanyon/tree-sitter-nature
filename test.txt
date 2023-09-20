@@ -1,8 +1,4 @@
-foo(1,true, s[0])
-var a = foo()
-int bar = baz[0]
-(int, bool) t = (1, true)
-[int] baz = [1,2,3,4,5]
-int a = "foo"
-break
-continue
+foo = fn((1,([1,2,3], true)), foo())
+i32 bar = (1 + 2) * 3
+(int, bool) f = (1, true)
+fn((1,([1,2,3], true)), foo())

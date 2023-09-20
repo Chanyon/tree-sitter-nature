@@ -1,12 +1,13 @@
 const PREC = {
-  low: 0,
-  or_and: 1,
-  comp: 2,
+  lowest: 0,
+  logical: 1,
+  comparison: 2,
   add_sub: 3,
-  mul_div: 4,
-  prefix: 5,
-  index_expr: 6,
-  call: 7,
+  bitwise: 4,
+  mul_div: 5,
+  prefix: 6,
+  index_expr: 7,
+  call: 8,
 };
 
 //todo
@@ -18,6 +19,7 @@ const PREC = {
 // arr
 // as expr | is expr
 // type T = i32
+// type Foo = struct {} Foo.A.B.C()
 */
 
 module.exports = grammar({
@@ -26,51 +28,56 @@ module.exports = grammar({
     program: $ => repeat($.declaration),
     declaration: $ => seq($.statements),
     // funDecl: $ => seq('fun', $.function),
-    varDecl: $ => seq(choice('var', $.type), $.ident, seq('=', $.expression)),
-    statements: $ => choice($.continueStmt, $.breakStmt, $.blockStmt, $.fnCallStmt, $.varDecl),
+    varDecl: $ => seq(choice('var', $.type), $.ident, seq('=', choice($.expression, $.arrayLiteral))),
+    statements: $ => choice($.assignmentStmt, $.continueStmt, $.breakStmt, $.blockStmt, $.returnStmt, $.fnCallStmt, $.varDecl),
     // exprStmt: $ => seq($.expression, ';'),
     // ifStmt: $ => seq('if', '(', $.expression, ')', $.statements, optional(seq('else', $.statements))),
     // forStmt: $ => seq('for', '(', choice($.varDecl, $.exprStmt, ';'), optional($.expression), ';', optional($.expression), ')', $.statements),
     // whileStmt: $ => seq('while', '(', $.expression, ')', $.statements),
     blockStmt: $ => seq('{', $.statements, '}'),
-    // returnStmt: $ => seq('return', optional($.expression), ';'),
+    returnStmt: $ => prec.right(PREC.lowest, seq('return', optional($.expression))),
     breakStmt: _ => seq('break'),
     continueStmt: _ => seq('continue'),
     fnCallStmt: $ => $.callExpr,
     // printStmt: $ => seq('print', $.expression, ';'),
-    // assignmentStmt: $ => seq(choice($.ident, seq("self", ".", $.ident)), "=", $.expression),
-    expression: $ => choice($.primary, $.arrayLiteral, $.tupleLiteral, $.indexExpr, $.callExpr),
-    // binaryExpr: $ => {
-    //   const table = [
-    //     [PREC.or_and, "||"],
-    //     [PREC.or_and, "&&"],
-    //     [PREC.comp, $.Comp],
-    //     [PREC.add_sub, $.ADD_SUB],
-    //     [PREC.mul, $.MUL_DIV],
-    //     [PREC.ident, $.ident]
-    //   ];
-    //   return choice(
-    //     ...table.map(([precedence, operator]) =>
-    //       prec.left(
-    //         precedence,
-    //         seq(
-    //           field("left", $.expression),
-    //           field("operator", operator),
-    //           field("right", $.expression)
-    //         )
-    //       )
-    //     )
-    //   )
-    // },
-    // unaryExpr: $ => prec.left(PREC.prefix, seq(field("operator", $.prefixOp), field("left", $.expression))),
-    // Comp: _ => choice("==", "!=", "<", ">", "<=", ">="),
-    // ADD_SUB: _ => choice("+", "-"),
-    // MUL_DIV: _ => choice("*", "/", "%"),
-    // prefixOp: _ => choice("-", "!"),
-    primary: $ => choice($.boolLiteral, 'nil', 'null', $.intLiteral, $.floatLiteral, $.stringLiteral, $.ident),
+    assignmentStmt: $ => seq(choice($.ident, /*a.b.c*/), $.assignOp, $.expression),
+    expression: $ => choice($.primary, $.unaryExpr, $.binaryExpr, $.groupExpr, $.tupleExpr),
+    binaryExpr: $ => {
+      const table = [
+        [PREC.logical, "||"],
+        [PREC.logical, "&&"],
+        [PREC.comparison, $.comparison],
+        [PREC.add_sub, $.ADD_SUB],
+        [PREC.bitwise, $.bitwise_l_r],
+        [PREC.mul_div, $.MUL_DIV],
+      ];
+      return choice(
+        ...table.map(([precedence, operator]) =>
+          prec.left(
+            precedence,
+            seq(
+              field("left", $.expression),
+              field("operator", operator),
+              field("right", $.expression)
+            )
+          )
+        )
+      )
+    },
+    comparison: _ => choice("==", "!=", "<", ">", "<=", ">="),
+    ADD_SUB: _ => choice("+", "-"),
+    bitwise_l_r: _ => choice('<<', '>>'), //bitwise (left | right)
+    MUL_DIV: _ => choice("*", "/", "%"),
+    prefixOp: _ => choice("-", "!", '~'),
+    assignOp: _ => choice('=', '+=', '-=', '/=', '*=', '%=', '<<=', '>>='),
+    unaryExpr: $ => prec.left(PREC.prefix, seq(field("operator", $.prefixOp), field("left", $.expression))),
+    primary: $ => choice($.boolLiteral, 'nil', 'null', $.intLiteral, $.floatLiteral, $.stringLiteral,
+      $.ident, $.indexExpr, $.callExpr),
     indexExpr: $ => prec.left(PREC.index_expr, seq($.ident, '[', $.intLiteral, ']')),
-    callExpr: $ => prec.left(PREC.call, seq($.ident, '(', repeat(seq($.expression, optional(','))), ')')),
-    pList: $ => repeat(seq($.expression, optional(','))),
+    callExpr: $ => prec.left(PREC.call, seq($.ident, '(', repeat($.parameterList), ')')),
+    groupExpr: $ => prec.left(PREC.call, seq('(', $.expression, ')')),
+    tupleExpr: $ => seq('(', repeat1(seq(choice($.expression, $.arrayLiteral), optional(','))), ')'),
+    parameterList: $ => seq($.expression, optional(',')),
     keyWord: _ =>
       choice(
         'fn',
@@ -88,6 +95,7 @@ module.exports = grammar({
         'try',
         'is',
         'as',
+        'in',
         'nil',
         'null',
         'type',
@@ -97,7 +105,7 @@ module.exports = grammar({
         'any',
         'arr'
       ),
-    type: $ => choice($.baseType, $.arrayType, $.tupleType),
+    type: $ => choice($.baseType, $.arrayType, $.tupleType, $.unionType),
     baseType: _ => choice(
       'i8', 'i16,', 'i32', 'int', 'i64',
       'u8', 'u16,', 'u32', 'uint', 'u64',
@@ -106,7 +114,8 @@ module.exports = grammar({
       'string'
     ),
     arrayType: $ => seq('[', $.baseType, optional(seq(',',$.intLiteral)),']'),
-    tupleType: $ => seq('(',repeat1(seq($.baseType, optional(','))),')'),
+    tupleType: $ => prec.left(PREC.lowest,seq('(', repeat1(seq($.baseType, optional(','))), ')')),
+    unionType: $ => seq($.baseType, repeat1(seq('|', $.baseType))), //i8|u8|null foo = null  
     intLiteral: $ => /(\d\d*|0[0-7]*|0[xX][\da-fA-F]*)/,
     floatLiteral: $ => choice(/\d\.\d*([eE][+-]\d*)?/, /\d*[eE][+-]\d*/, /\.\d*[eE][+-]\d*/),
     boolLiteral: $ => /(true|false)/,
@@ -114,8 +123,7 @@ module.exports = grammar({
       seq('"', /\w+/, '"'),
       seq("'", /\w+/, "'")
     ),
-    arrayLiteral: $ => seq('[', repeat1(seq($.primary, optional(','))), ']'),
-    tupleLiteral: $ => seq('(', repeat1(seq($.primary, optional(','))), ')'),
+    arrayLiteral: $ => seq('[', repeat1(seq($.expression, optional(','))), ']'),
     ident: $ => /[a-zA-Z_]\w*/,
   }
 })
