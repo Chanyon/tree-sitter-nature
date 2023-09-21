@@ -1,4 +1,13 @@
 foo = fn((1,([1,2,3], true)), foo())
 i32 bar = (1 + 2) * 3
 (int, bool) f = (1, true)
-fn((1,([1,2,3], true)), foo())
+foo((1,([1,2,3], true)), foo())
+var a = fn(int i):i16 {}
+foo()
+fn foo(A a, int b):i32 {
+  return 1
+}
+type T = (bool, i32)
+var a = foo()
+type T = gen i8|u8|null|A
+type Option_a = i32|T
