@@ -4,3 +4,7 @@ node_modules
 *.exe
 *.obj
 *.exp
+test2.txt
+src/grammar.json
+src/parser.c
+src/node-types.json

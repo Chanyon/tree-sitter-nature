@@ -6,8 +6,9 @@ const PREC = {
   bitwise: 4,
   mul_div: 5,
   prefix: 6,
-  index_expr: 7,
-  call: 8,
+  call: 7,
+  index_expr: 8,
+  dot: 9
 };
 
 //todo
@@ -16,23 +17,25 @@ const PREC = {
 // set
 // arr
 // as expr | is expr
-// type Foo = struct {} Foo.A.B.C()
 */
 
 module.exports = grammar({
   name: "nature",
   extras: $ => [/\s/, $.lineComment],
   // externals: $ => [],
-  // conflicts: $ => [],
+  conflicts: $ => [
+    [$.expression, $.baseType],
+    [$.fnCallStmt, $.expression],
+  ],
   inline: $ => [$.keyWord],
   word: $ => $.identifier,
   rules: {
     source_file: $ => repeat($.declaration),
     declaration: $ => seq($.statements),
-    statements: $ => choice($.funDecl, $.assignmentStmt, $.continueStmt, $.breakStmt, $.blockStmt, $.returnStmt, $.fnCallStmt, $.varDecl, $.typeDecl),
-    funDecl: $ => seq('fn', optional(field("name", $.identifier)), '(', repeat($.parameterList), ')', optional(field("result",seq(':', $.type))), field("body",$.blockStmt)),
-    varDecl: $ => seq(choice('var', $.type), $.identifier, seq('=', choice($.expression, $.arrayLiteral, $.funDecl))),
-    typeDecl: $ => seq('type', field("name", $.identifier), '=', choice(seq('gen', $.unionType), $.baseType, $.tupleType, $.unionType)),
+    statements: $ => choice($.funDecl, $.assignmentStmt, $.continueStmt, $.breakStmt, $.blockStmt, $.returnStmt, $.varDecl, $.typeDecl, $.fnCallStmt),
+    funDecl: $ => seq('fn', optional(field("name", $.identifier)), '(', optional($.parameterList), ')', optional(field("result",seq(':', $.type))), field("body",$.blockStmt)),
+    varDecl: $ => seq(choice('var', $.type), field("name", $.identifier), seq('=', choice($.expression, $.arrayLiteral, $.funDecl))),
+    typeDecl: $ => seq('type', field("name", $.identifier), '=', choice(seq('gen', $.unionType), $.baseType, $.tupleType, $.unionType, $.structDecl)),
     // exprStmt: $ => seq($.expression, ';'),
     // ifStmt: $ => seq('if', '(', $.expression, ')', $.statements, optional(seq('else', $.statements))),
     // forStmt: $ => seq('for', '(', choice($.varDecl, $.exprStmt, ';'), optional($.expression), ';', optional($.expression), ')', $.statements),
@@ -42,8 +45,9 @@ module.exports = grammar({
     breakStmt: _ => seq('break'),
     continueStmt: _ => seq('continue'),
     fnCallStmt: $ => $.callExpr,
-    assignmentStmt: $ => seq(choice(field("left", $.identifier), /*a.b.c*/), $.assignOp, field("right", $.expression)),
-    expression: $ => choice($.primary, $.unaryExpr, $.binaryExpr, $.groupExpr, $.tupleExpr),
+    assignmentStmt: $ => seq(choice(field("left", choice($.identifier, $.selectorExpr))), $.assignOp, field("right", $.expression)),
+    expression: $ => choice($.identifier, $.indexExpr, $.callExpr, $.unaryExpr, $.binaryExpr,
+      $.tupleExpr, $.selectorExpr, $.boolLiteral, $.intLiteral, $.floatLiteral, $.stringLiteral, $._nil, $._null),
     binaryExpr: $ => {
       const table = [
         [PREC.logical, "||"],
@@ -73,15 +77,14 @@ module.exports = grammar({
     prefixOp: _ => choice("-", "!", '~'),
     assignOp: _ => choice('=', '+=', '-=', '/=', '*=', '%=', '<<=', '>>='),
     unaryExpr: $ => prec.left(PREC.prefix, seq(field("operator", $.prefixOp), field("left", $.expression))),
-    primary: $ => choice($.boolLiteral, 'nil', 'null', $.intLiteral, $.floatLiteral, $.stringLiteral,
-      $.identifier, $.indexExpr, $.callExpr),
-    indexExpr: $ => prec.left(PREC.index_expr, seq($.identifier, '[', $.intLiteral, ']')),
+    indexExpr: $ => prec.left(PREC.index_expr, seq(field("operand", $.expression), "[",field("index", $.expression), "]") ),
+    selectorExpr: $ => prec.left(PREC.dot, seq(field("operand", $.expression), seq(".", field("field",$.expression)))),
     callExpr: $ => prec.left(PREC.call, seq(field("function", $.identifier), '(', field("arguments",repeat($.argumentsList)), ')')),
-    groupExpr: $ => prec.left(PREC.call, seq('(', $.expression, ')')),
+    groupExpr: $ => seq('(', $.expression, ')'),
     tupleExpr: $ => seq('(', repeat1(seq(choice($.expression, $.arrayLiteral), optional(','))), ')'),
     argumentsList: $ => seq($.expression, optional(',')),
-    parameterList: $ => $.parameterDecl,
-    parameterDecl: $ => seq(field("type", $.type), field("name",$.identifier), optional(',')),
+    parameterList: $ => repeat1($.parameterDecl),
+    parameterDecl: $ => seq(choice(seq("self", field("self", $.identifier)), seq(field("type", $.type), field("name",$.identifier))), optional(',')),
     keyWord: _ =>
       choice(
         'fn',
@@ -114,10 +117,15 @@ module.exports = grammar({
       'i8', 'i16', 'i32', 'int', 'i64',
       'u8', 'u16', 'u32', 'uint', 'u64',
       'f32', 'f64', 'f80', 'float',
-      'cptr', 'null', 'bool', 'any',
-      'string', field("type", $.identifier)
+      'cptr', 'bool', 'any', $._null,  field("type_literal", $.identifier),
+      'string', 
     ),
-    arrayType: $ => seq('[', $.baseType, optional(seq(',',$.intLiteral)),']'),
+    structDecl: $ => seq('struct', '{', seq(optional($.fieldDeclList), optional($.methodDeclList)), '}'),
+    fieldDeclList: $ => repeat1($.filedDecl),
+    filedDecl: $ => seq(field("type", $.type), field("name", $.identifier)),
+    methodDeclList: $ => repeat1($.methodDecl),
+    methodDecl: $ => seq('var', field("method_name", $.identifier), '=', seq('fn','(', optional($.parameterList), ')', optional(field("result",seq(':', $.type))), field("body",$.blockStmt))),
+    arrayType: $ => prec.left(PREC.lowest,seq('[', $.baseType, optional(seq(',',$.intLiteral)),']')),
     tupleType: $ => prec.left(PREC.lowest,seq('(', repeat1(seq($.baseType, optional(','))), ')')),
     unionType: $ => seq($.baseType, repeat1(seq('|', $.baseType))), //i8|u8|null foo = null  
     intLiteral: $ => /(\d\d*|0[0-7]*|0[xX][\da-fA-F]*)/,
@@ -130,6 +138,8 @@ module.exports = grammar({
     arrayLiteral: $ => seq('[', repeat1(seq($.expression, optional(','))), ']'),
     identifier: $ => /[a-zA-Z_]\w*/,
     lineComment: _ => seq('//', /.*/),
+    _nil: _ => seq(field("nil_literal", 'nil')),
+    _null: _ => seq(field("null_literal",'null')),
   }
 })
 
